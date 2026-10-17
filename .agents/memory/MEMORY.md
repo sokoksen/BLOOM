@@ -1,0 +1,1 @@
+- [Course dashboard mockup scope](course-dashboard-mockup-scope.md) — postpartum expert-video tiles are layout-only; do not connect real videos.

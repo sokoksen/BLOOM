@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, Route, Switch, useLocation } from 'wouter';
 import {
-  ArrowRight, ArrowUpRight, Baby, BookOpen, Brain, CalendarDays,
+  ArrowRight, ArrowUpRight, Baby, BookOpen, Brain, CalendarDays, Check,
   Dumbbell, FileText, Heart, HelpCircle, LogOut, Menu, MessageCircle, Moon,
   Play, Settings, ShoppingBasket, Sparkles, Stethoscope, UserRound, Users, X,
 } from 'lucide-react';
@@ -13,7 +13,7 @@ type Course = {
 };
 const courses: Course[] = [
   {
-    id: 'planning', title: 'Planning', label: 'Before the positive test', number: '01 / BEGIN HERE',
+    id: 'planning', title: 'Plan', label: 'Before the positive test', number: '01 / BEGIN HERE',
     headline: 'A softer start to trying',
     summary: 'Thoughtful, evidence-aware guidance for the months before pregnancy—so you can make sense of the basics without turning your life into a checklist.',
     detail: 'Trying to conceive can hold a lot at once: hope, questions, and the sense that you should already know what to do. This course helps you build a calm foundation, with practical steps you can take and permission to leave the rest for later.',
@@ -49,7 +49,7 @@ function DetailDialog({ course, close }: { course: Course; close: () => void }) 
   }, [close]);
   return <div className="dialog-backdrop" role="presentation" onMouseDown={(e) => { if (e.target === e.currentTarget) close(); }}>
     <section className="dialog" role="dialog" aria-modal="true" aria-labelledby="dialog-title">
-      <button className="dialog-close" type="button" aria-label="Close course details" onClick={close}><X size={19}/></button>
+      <button className="dialog-close" type="button" aria-label="Close course details" data-testid="button-close-course-details" onClick={close}><X size={19}/></button>
       <span className="course-number">{course.number}</span>
       <h2 id="dialog-title">{course.title}</h2>
       <p>{course.detail}</p>
@@ -61,43 +61,22 @@ function DetailDialog({ course, close }: { course: Course; close: () => void }) 
 
 function Home() {
   const [, navigate] = useLocation();
-  const [active, setActive] = useState<Course | null>(courses[1]);
-  const [selectedTiers, setSelectedTiers] = useState<Record<string, TierId>>({
-    planning: 'silver', pregnancy: 'silver', postpartum: 'silver',
-  });
   const [dialog, setDialog] = useState<Course | null>(null);
-  const chosenTier = active ? selectedTiers[active.id] : null;
   return <main className="home-shell">
+    <header className="home-header"><div className="reserved-logo" aria-label="Logo area reserved" data-testid="logo-reserved"/></header>
     <section className="course-section" aria-labelledby="course-heading">
       <div className="section-inner">
-        <h1 id="course-heading">Support for your season.</h1>
-        <div className="discovery">
-          <nav className="course-list" aria-label="Choose a course">
-            {courses.map((course) => <button key={course.id} type="button" className="course-tab"
-              aria-expanded={active?.id === course.id} aria-controls="course-details"
-              onClick={() => setActive(active?.id === course.id ? null : course)}>
-              <span><span className="tab-title">{course.title}</span><span className="tab-kicker">{course.label}</span></span>
-              <span className="tab-arrow" aria-hidden="true">{active?.id === course.id ? '−' : '›'}</span>
-            </button>)}
-          </nav>
-          <div id="course-details" className="course-content" aria-live="polite">
-            {active && <div className="details-pane" key={active.id}>
-              <h2>{active.headline}</h2>
-              <p className="detail-summary">{active.summary}</p>
-              <button type="button" className="text-link" onClick={() => setDialog(active)}>Explore this course <ArrowUpRight size={14}/></button>
-              <div className="tier-grid" role="group" aria-label={`${active.title} tiers`}>
-                {tiers.map((tier) => <button key={tier.id} type="button" className={`tier-card tier-${tier.id}`}
-                  aria-pressed={selectedTiers[active.id] === tier.id}
-                  onClick={() => setSelectedTiers((prev) => ({ ...prev, [active.id]: tier.id }))}>
-                  <span className="tier-name">{tier.name}</span>
-                  <span className="tier-price">{tier.price}<span className="tier-unit"> / month</span></span>
-                </button>)}
-              </div>
-              <button type="button" className="move-button"
-                disabled={active.id !== 'postpartum' || chosenTier !== 'platinum'}
-                onClick={() => navigate('/postpartum')}>Move to course content</button>
-            </div>}
-          </div>
+        <h1 id="course-heading" className="sr-only">Courses</h1>
+        <div className="course-cards" aria-label="Courses">
+          {courses.map((course) => <article className={`course-card course-card-${course.id}`} key={course.id} data-testid={`card-course-${course.id}`}>
+            <h2 data-testid={`text-course-title-${course.id}`}>{course.title}</h2>
+            <div className="course-art" aria-hidden="true"><span className="art-orbit"/><span className="art-shape"/><span className="art-dot"/></div>
+            <p>{course.summary}</p>
+            <button type="button" className="learn-button" data-testid={`button-learn-${course.id}`}
+              onClick={() => course.id === 'postpartum' ? navigate('/postpartum') : setDialog(course)}>
+              Learn more <ArrowUpRight size={17}/>
+            </button>
+          </article>)}
         </div>
       </div>
     </section>
@@ -122,10 +101,15 @@ const events = [
 const weekdays = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
 const calendarCells = [28, 29, 30, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 1];
 
-function Tile({ icon: Icon, title, subtitle }: { icon: typeof Baby; title: string; subtitle?: string }) {
-  return <div className="dashboard-tile">
+const tierDetails: Record<TierId, string[]> = {
+  silver: ['50 videos with experts', 'Checklists', 'Event calendar · events at additional prices'],
+  gold: ['50 videos with experts', 'Checklists', 'Event calendar', 'Nutrition package: guides, articles, and checklists', '1 free event of your choice'],
+  platinum: ['50 videos with experts', 'Checklists', 'Event calendar', 'Nutrition package: guides, articles, and checklists', '2 free events', '1 personal training session', '1 session with a psychologist or nutritionist'],
+};
+function Tile({ icon: Icon, title, subtitle, locked = false, note }: { icon: typeof Baby; title: string; subtitle?: string; locked?: boolean; note?: string }) {
+  return <div className={`dashboard-tile ${locked ? 'tile-locked' : ''}`} aria-disabled={locked} data-testid={`tile-${title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`}>
     <Icon className="tile-icon" strokeWidth={1.45}/>
-    <span className="tile-copy">{title}{subtitle && <small>{subtitle}</small>}</span>
+    <span className="tile-copy">{title}{subtitle && <small>{subtitle}</small>}{note && <small className="tile-note">{note}</small>}</span>
     <ArrowRight className="tile-arrow" size={17}/>
   </div>;
 }
@@ -133,21 +117,22 @@ function Dashboard() {
   const [mobileNav, setMobileNav] = useState(false);
   const [mode, setMode] = useState<'W' | 'M'>('W');
   const [monthOffset, setMonthOffset] = useState(0);
+  const [tier, setTier] = useState<TierId>('silver');
   const date = new Date(2026, 9 + monthOffset, 1);
   const month = date.toLocaleString('en', { month: 'long' });
   const year = date.getFullYear();
   const visibleCells = monthOffset === 0 ? calendarCells : buildCalendar(date.getFullYear(), date.getMonth());
   return <main className="dashboard">
-    <button className="mobile-menu" type="button" aria-label="Toggle navigation" aria-expanded={mobileNav} onClick={() => setMobileNav(!mobileNav)}><Menu/></button>
+    <button className="mobile-menu" type="button" aria-label="Toggle navigation" aria-expanded={mobileNav} data-testid="button-toggle-navigation" onClick={() => setMobileNav(!mobileNav)}><Menu/></button>
     <aside className={`side-nav ${mobileNav ? 'side-nav-open' : ''}`}>
-      <div className="logo-box">LOGO</div><button className="side-close" aria-label="Close navigation" onClick={() => setMobileNav(false)}><X size={17}/></button>
+      <div className="logo-box" aria-label="Logo area reserved" data-testid="logo-reserved"/><button className="side-close" aria-label="Close navigation" data-testid="button-close-navigation" onClick={() => setMobileNav(false)}><X size={17}/></button>
       <nav>{navItems.map(({ label, icon: Icon, active: isActive }) => <div key={label} className={`nav-item ${isActive ? 'nav-active' : ''}`}><Icon size={20} strokeWidth={1.6}/><span>{label}</span></div>)}</nav>
       <div className="nav-rule"/><div className="nav-item"><LogOut size={20} strokeWidth={1.6}/><span>Log out</span></div>
     </aside>
     <section className="dashboard-main">
       <header className="dashboard-top">
         <div className="mode-switch" role="group" aria-label="W/M toggle">
-          {(['W', 'M'] as const).map((m) => <button type="button" key={m} aria-pressed={mode === m} onClick={() => setMode(m)}>{m}</button>)}
+          {(['W', 'M'] as const).map((m) => <button type="button" key={m} data-testid={`button-calendar-mode-${m.toLowerCase()}`} aria-pressed={mode === m} onClick={() => setMode(m)}>{m}</button>)}
         </div>
         <div className="account-actions"><span className="basket" aria-label="Cart"><ShoppingBasket size={25}/><span>1</span></span><span className="signin">Sign in</span></div>
       </header>
@@ -155,29 +140,33 @@ function Dashboard() {
         <div className="dashboard-content">
           <h1 className="dashboard-title"><span className="mother-icon"><Baby size={42} strokeWidth={1.3}/></span>Post-partum</h1>
           <SectionTitle icon={Play} title="Videos with the experts"/>
-          <div className="tile-grid two">
+          <div className="tile-grid two" data-testid="group-videos">
             <Tile icon={Stethoscope} title="Gynecologist:" subtitle="Postpartum Recovery"/>
             <Tile icon={Brain} title="Psychologist:" subtitle="Emotions and Mental Health"/>
             <Tile icon={Brain} title="Neurologist:" subtitle="Sleep and Nervous System"/>
             <Tile icon={Heart} title="Pelvic Floor Specialist:" subtitle="Body Recovery"/>
           </div>
           <SectionTitle icon={Dumbbell} title="Sport and Nutrition"/>
-          <div className="tile-grid two"><Tile icon={Dumbbell} title="Physical Training"/><Tile icon={Sparkles} title="Meditation"/></div>
+          <div className={`tile-grid two access-group ${tier === 'silver' ? 'access-locked' : ''}`} aria-disabled={tier === 'silver'} data-testid="group-sport-nutrition"><Tile icon={Dumbbell} title="Physical Training" locked={tier === 'silver'} note={tier === 'silver' ? 'Available with Gold' : undefined}/><Tile icon={Sparkles} title="Nutrition" locked={tier === 'silver'} note={tier === 'silver' ? 'Available with Gold' : undefined}/></div>
           <SectionTitle icon={UserRound} title="Book a Session"/>
-          <div className="tile-grid three">
-            <Tile icon={Dumbbell} title="Personal Trainer"/>
-            <Tile icon={Heart} title="Nutritionist"/>
-            <Tile icon={Sparkles} title="Astrologer"/>
+          <div className={`tile-grid three access-group ${tier !== 'platinum' ? 'access-locked' : ''}`} aria-disabled={tier !== 'platinum'} data-testid="group-book-session">
+            <Tile icon={Dumbbell} title="Personal Trainer" locked={tier !== 'platinum'} note={tier !== 'platinum' ? 'Available with Platinum' : undefined}/>
+            <Tile icon={Heart} title="Nutritionist" locked={tier !== 'platinum'} note={tier !== 'platinum' ? 'Available with Platinum' : undefined}/>
+            <Tile icon={Brain} title="Psychologist" locked={tier !== 'platinum'} note={tier !== 'platinum' ? 'Available with Platinum' : undefined}/>
           </div>
           <SectionTitle icon={Play} title="Webinars"/>
-          <div className="tile-grid two">
+          <div className={`tile-grid two access-group ${tier === 'silver' ? 'access-locked' : ''}`} aria-disabled={tier === 'silver'} data-testid="group-webinars">
             <Tile icon={Baby} title="Baby Care Basics"/>
             <Tile icon={Heart} title="Returning to Yourself"/>
           </div>
+          <SectionTitle icon={FileText} title="Checklists"/>
+          <div className="checklist-grid" data-testid="section-checklists">
+            {['Vaccination calendar', 'Breastfeeding', 'First-Year Essentials'].map((item) => <div className="checklist-item" key={item} data-testid={`checklist-${item.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`}><span><Check size={15}/></span>{item}</div>)}
+          </div>
         </div>
-        <aside className="events-card">
-          <div className="events-heading"><h2><CalendarDays size={22}/>Events</h2><span>See all <ArrowRight size={15}/></span></div>
-          <div className="calendar-month"><button aria-label="Previous month" onClick={() => setMonthOffset(monthOffset - 1)}>‹</button><strong>{month} {year}</strong><button aria-label="Next month" onClick={() => setMonthOffset(monthOffset + 1)}>›</button></div>
+        <aside className="events-card" data-testid="section-events">
+          <div className="events-heading"><h2><CalendarDays size={22}/>Events</h2><span className="event-access">{tier === 'silver' ? 'Additional price' : tier === 'gold' ? '1 free event' : '2 free events'} <ArrowRight size={15}/></span></div>
+          <div className="calendar-month"><button aria-label="Previous month" data-testid="button-previous-month" onClick={() => setMonthOffset(monthOffset - 1)}>‹</button><strong data-testid="text-calendar-month">{month} {year}</strong><button aria-label="Next month" data-testid="button-next-month" onClick={() => setMonthOffset(monthOffset + 1)}>›</button></div>
           <div className="calendar-grid">
             {weekdays.map((day) => <span className="weekday" key={day}>{day}</span>)}
             {visibleCells.map((day, index) => <span key={`${index}-${day}`} className={`date-cell ${monthOffset === 0 && (day === 17 || day === 20) ? 'date-highlight' : ''} ${monthOffset === 0 && index < 3 || monthOffset === 0 && index === 34 ? 'date-outside' : ''}`}>{day}</span>)}
@@ -189,11 +178,22 @@ function Dashboard() {
           </article>)}</div>
         </aside>
       </div>
+      <section className="plan-panel" aria-labelledby="plan-heading" data-testid="section-subscription-plans">
+        <div className="plan-heading"><div><span className="eyebrow">Choose your level of support</span><h2 id="plan-heading">Your membership</h2></div><span className="plan-caption">Monthly · change anytime</span></div>
+        <div className="plan-grid" role="group" aria-label="Subscription plans">
+          {tiers.map((item) => <button type="button" key={item.id} className={`plan-card plan-${item.id}`} data-testid={`button-tier-${item.id}`}
+            aria-pressed={tier === item.id} onClick={() => setTier(item.id)}>
+            <span className="plan-card-head"><span className="plan-name">{item.name}</span><span className="plan-price">{item.price}<small> / month</small></span></span>
+            <span className="plan-includes">{tierDetails[item.id].map((feature) => <span key={feature}><Check size={14}/>{feature}</span>)}</span>
+            <span className="plan-select">{tier === item.id ? 'Selected plan' : 'Select plan'}</span>
+          </button>)}
+        </div>
+      </section>
     </section>
   </main>;
 }
 function SectionTitle({ icon: Icon, title }: { icon: typeof Play; title: string }) {
-  return <div className="section-title"><Icon size={23} strokeWidth={1.7}/><h2>{title}</h2><span/></div>;
+  return <div className="section-title" data-testid={`heading-${title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`}><Icon size={23} strokeWidth={1.7}/><h2>{title}</h2><span/></div>;
 }
 function buildCalendar(year: number, month: number) {
   const firstDay = (new Date(year, month, 1).getDay() + 6) % 7;
