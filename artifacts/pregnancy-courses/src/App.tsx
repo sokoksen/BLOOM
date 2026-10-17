@@ -1,313 +1,207 @@
 import { useEffect, useState } from 'react';
-import { ArrowUpRight, Check, X } from 'lucide-react';
+import { Link, Route, Switch, useLocation } from 'wouter';
+import {
+  ArrowRight, ArrowUpRight, Baby, BookOpen, Brain, CalendarDays,
+  Dumbbell, FileText, Heart, HelpCircle, LogOut, Menu, MessageCircle, Moon,
+  Play, Settings, ShoppingBasket, Sparkles, Stethoscope, UserRound, Users, X,
+} from 'lucide-react';
 
-type TierId = 'solo' | 'guided' | 'total';
+type TierId = 'silver' | 'gold' | 'platinum';
 type Course = {
-  id: string;
-  title: string;
-  label: string;
-  number: string;
-  headline: string;
-  summary: string;
-  duration: string;
-  modules: string[];
-  detail: string;
-  focus: string;
+  id: string; title: string; label: string; number: string; headline: string;
+  summary: string; detail: string; modules: string[];
 };
-
 const courses: Course[] = [
   {
-    id: 'planning',
-    title: 'Planning',
-    label: 'Before the positive test',
-    number: '01 / BEGIN HERE',
+    id: 'planning', title: 'Planning', label: 'Before the positive test', number: '01 / BEGIN HERE',
     headline: 'A softer start to trying',
-    summary:
-      'Thoughtful, evidence-aware guidance for the months before pregnancy—so you can make sense of the basics without turning your life into a checklist.',
-    duration: '6 short chapters · learn at your pace',
-    focus: 'Prepare with less pressure',
-    detail:
-      'Trying to conceive can hold a lot at once: hope, questions, and the sense that you should already know what to do. This course helps you build a calm foundation, with practical steps you can take and permission to leave the rest for later.',
-    modules: [
-      'Understanding your cycle and fertile window',
-      'Everyday nutrition, movement, and supplements',
-      'Making sense of appointments and common tests',
-      'Talking together about timing, feelings, and support',
-    ],
+    summary: 'Thoughtful, evidence-aware guidance for the months before pregnancy—so you can make sense of the basics without turning your life into a checklist.',
+    detail: 'Trying to conceive can hold a lot at once: hope, questions, and the sense that you should already know what to do. This course helps you build a calm foundation, with practical steps you can take and permission to leave the rest for later.',
+    modules: ['Understanding your cycle and fertile window', 'Everyday nutrition, movement, and supplements', 'Making sense of appointments and common tests', 'Talking together about timing, feelings, and support'],
   },
   {
-    id: 'pregnancy',
-    title: 'Pregnancy',
-    label: 'From first weeks to birth',
-    number: '02 / GROWING',
+    id: 'pregnancy', title: 'Pregnancy', label: 'From first weeks to birth', number: '02 / GROWING',
     headline: 'Your pregnancy, one step at a time',
-    summary:
-      'A steady companion for the changes ahead: what may be happening, what can help, and how to find your footing through each trimester.',
-    duration: '12 weekly chapters · revisit anytime',
-    focus: 'Feel more at home in change',
-    detail:
-      'No two pregnancies feel the same. Get clear, compassionate explanations of body changes, appointments, and birth choices—without the pressure to feel a certain way or follow a perfect plan.',
-    modules: [
-      'What to expect across the three trimesters',
-      'Common symptoms and gentle ways to feel better',
-      'Appointments, screening, and questions to ask',
-      'Building a birth preferences plan that can flex',
-    ],
+    summary: 'A steady companion for the changes ahead: what may be happening, what can help, and how to find your footing through each trimester.',
+    detail: 'No two pregnancies feel the same. Get clear, compassionate explanations of body changes, appointments, and birth choices—without the pressure to feel a certain way or follow a perfect plan.',
+    modules: ['What to expect across the three trimesters', 'Common symptoms and gentle ways to feel better', 'Appointments, screening, and questions to ask', 'Building a birth preferences plan that can flex'],
   },
   {
-    id: 'postpartum',
-    title: 'Postpartum',
-    label: 'The first weeks together',
-    number: '03 / NEW RHYTHMS',
+    id: 'postpartum', title: 'Postpartum', label: 'The first weeks together', number: '03 / NEW RHYTHMS',
     headline: 'Care for the person becoming a parent',
-    summary:
-      'Realistic support for recovery, feeding, sleep, and the big feelings of early parenthood—designed for the days when your hands are full.',
-    duration: '8 bite-size chapters · always here',
-    focus: 'Make room for your recovery',
-    detail:
-      'The early weeks are tender and unpredictable. This course helps you prepare for recovery and feeding, understand when to ask for help, and shape a circle of care around the whole family.',
-    modules: [
-      'Physical recovery and signs that deserve attention',
-      'Feeding support without judgement or assumptions',
-      'Newborn sleep, soothing, and realistic expectations',
-      'Emotional wellbeing and finding your support people',
-    ],
+    summary: 'Realistic support for recovery, feeding, sleep, and the big feelings of early parenthood—designed for the days when your hands are full.',
+    detail: 'The early weeks are tender and unpredictable. This course helps you prepare for recovery and feeding, understand when to ask for help, and shape a circle of care around the whole family.',
+    modules: ['Physical recovery and signs that deserve attention', 'Feeding support without judgement or assumptions', 'Newborn sleep, soothing, and realistic expectations', 'Emotional wellbeing and finding your support people'],
   },
 ];
-
-const tiers: { id: TierId; name: string; price: string; description: string }[] = [
-  { id: 'solo', name: 'Solo', price: '€5', description: 'The complete self-paced course' },
-  { id: 'guided', name: 'Guided', price: '€10', description: 'Course plus gentle weekly prompts' },
-  { id: 'total', name: 'Total Care', price: '€20', description: 'Course, prompts, and personal support' },
+const tiers: { id: TierId; name: string; price: string }[] = [
+  { id: 'silver', name: 'Silver', price: '€5' },
+  { id: 'gold', name: 'Gold', price: '€10' },
+  { id: 'platinum', name: 'Platinum', price: '€20' },
 ];
 
-function BrandMark() {
-  return (
-    <a href="#top" className="brand" aria-label="Kindred, back to top" data-testid="link-brand">
-      <span className="brand-mark" aria-hidden="true" />
-      <span>kindred</span>
-    </a>
-  );
-}
-
-function CourseDetailDialog({
-  course,
-  onClose,
-}: {
-  course: Course;
-  onClose: () => void;
-}) {
+function DetailDialog({ course, close }: { course: Course; close: () => void }) {
   useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
-    };
-    document.addEventListener('keydown', onKeyDown);
+    const key = (event: KeyboardEvent) => { if (event.key === 'Escape') close(); };
+    document.addEventListener('keydown', key);
     document.body.style.overflow = 'hidden';
-    return () => {
-      document.removeEventListener('keydown', onKeyDown);
-      document.body.style.overflow = '';
-    };
-  }, [onClose]);
-
-  return (
-    <div
-      className="dialog-backdrop"
-      role="presentation"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) onClose();
-      }}
-      data-testid={`dialog-backdrop-${course.id}`}
-    >
-      <section
-        className="dialog"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="dialog-title"
-        data-testid={`dialog-course-${course.id}`}
-      >
-        <button
-          type="button"
-          className="dialog-close"
-          aria-label="Close course details"
-          onClick={onClose}
-          data-testid="button-close-details"
-        >
-          <X size={19} strokeWidth={1.7} />
-        </button>
-        <div className="eyebrow">{course.number}</div>
-        <h2 id="dialog-title">{course.title}, with room to be human</h2>
-        <p className="dialog-lead">{course.detail}</p>
-        <h4>Inside this course</h4>
-        <ul className="dialog-list">
-          {course.modules.map((module) => <li key={module}>{module}</li>)}
-        </ul>
-        <div className="dialog-bottom">
-          Choose the level of support that feels right for you. The prices shown are sample
-          subscription tiers for this demo; nothing is purchased here. Course content is
-          educational and does not replace care from your midwife or doctor.
-        </div>
-      </section>
-    </div>
-  );
-}
-
-function CoursePanel({
-  course,
-  selectedTier,
-  onTier,
-  onDetails,
-}: {
-  course: Course;
-  selectedTier: TierId;
-  onTier: (tier: TierId) => void;
-  onDetails: () => void;
-}) {
-  return (
-    <div className="details-pane" key={course.id} data-testid={`panel-course-${course.id}`}>
-      <div className="detail-topline">
-        <span className="course-number">{course.number}</span>
-        <span className="format-note">Made for real life</span>
-      </div>
-      <h3>{course.headline}</h3>
-      <p className="detail-summary">{course.summary}</p>
-      <div className="detail-actions">
-        <button type="button" className="text-link" onClick={onDetails} data-testid={`link-course-details-${course.id}`}>
-          Explore this course <ArrowUpRight size={14} aria-hidden="true" />
-        </button>
-        <span className="duration">{course.duration}</span>
-      </div>
-      <p className="tier-label">Choose your kind of support</p>
-      <div className="tier-grid" role="group" aria-label={`${course.title} subscription tiers`}>
-        {tiers.map((tier) => (
-          <button
-            type="button"
-            className="tier-card"
-            key={tier.id}
-            aria-pressed={selectedTier === tier.id}
-            onClick={() => onTier(tier.id)}
-            data-testid={`tier-${course.id}-${tier.id}`}
-          >
-            <span className="tier-name">{tier.name}</span>
-            <span className="tier-price">{tier.price}<span className="tier-unit"> / month</span></span>
-            <span className="tier-description">{tier.description}</span>
-          </button>
-        ))}
-      </div>
-      <p className="selection-note" aria-live="polite">
-        {tiers.find((tier) => tier.id === selectedTier)?.name} selected for {course.title}. No payment is taken here.
-      </p>
-      <div className="detail-footer">
-        <span><Check className="check-mark" size={15} /> Clear, bite-size learning</span>
-        <span><Check className="check-mark" size={15} /> Revisit whenever you need</span>
-      </div>
-    </div>
-  );
+    return () => { document.removeEventListener('keydown', key); document.body.style.overflow = ''; };
+  }, [close]);
+  return <div className="dialog-backdrop" role="presentation" onMouseDown={(e) => { if (e.target === e.currentTarget) close(); }}>
+    <section className="dialog" role="dialog" aria-modal="true" aria-labelledby="dialog-title">
+      <button className="dialog-close" type="button" aria-label="Close course details" onClick={close}><X size={19}/></button>
+      <span className="course-number">{course.number}</span>
+      <h2 id="dialog-title">{course.title}</h2>
+      <p>{course.detail}</p>
+      <h3>Inside this course</h3>
+      <ul>{course.modules.map((item) => <li key={item}>{item}</li>)}</ul>
+    </section>
+  </div>;
 }
 
 function Home() {
-  const [activeCourse, setActiveCourse] = useState<string | null>('planning');
+  const [, navigate] = useLocation();
+  const [active, setActive] = useState<Course | null>(courses[1]);
   const [selectedTiers, setSelectedTiers] = useState<Record<string, TierId>>({
-    planning: 'guided',
-    pregnancy: 'guided',
-    postpartum: 'guided',
+    planning: 'silver', pregnancy: 'silver', postpartum: 'silver',
   });
-  const [dialogCourse, setDialogCourse] = useState<Course | null>(null);
-  const active = courses.find((course) => course.id === activeCourse);
-
-  return (
-    <main className="site-shell" id="top">
-      <header className="topbar">
-        <BrandMark />
-        <span className="top-note">A little more held, every step</span>
-      </header>
-
-      <section className="hero" aria-labelledby="hero-title">
-        <div className="hero-art" aria-hidden="true">
-          <span className="art-stem" />
-          <span className="art-leaf leaf-one" />
-          <span className="art-leaf leaf-two" />
-          <span className="art-dot" />
-        </div>
-        <div className="hero-copy">
-          <div className="eyebrow">A kinder kind of preparation</div>
-          <h1 id="hero-title">There’s no one right way <em>to begin.</em></h1>
-          <p className="hero-intro">
-            Wherever you are in the becoming, find clear, caring guidance for what comes next.
-            No perfect plans required.
-          </p>
-        </div>
-      </section>
-
-      <section className="course-section" aria-labelledby="course-heading">
-        <div className="section-inner">
-          <div className="section-heading">
-            <div>
-              <div className="eyebrow">Find your next small step</div>
-              <h2 id="course-heading">Support for your season.</h2>
-            </div>
-            <p>Choose where you are. We’ll meet you there—with useful information and plenty of breathing room.</p>
-          </div>
-
-          <div className="discovery">
-            <nav className="course-list" aria-label="Choose a course">
-              <div className="list-label">Explore by season</div>
-              {courses.map((course) => (
-                <button
-                  key={course.id}
-                  type="button"
-                  className="course-tab"
-                  aria-expanded={activeCourse === course.id}
-                  aria-controls="course-details"
-                  onClick={() => setActiveCourse(activeCourse === course.id ? null : course.id)}
-                  data-testid={`button-course-${course.id}`}
-                >
-                  <span>
-                    <span className="tab-title">{course.title}</span>
-                    <span className="tab-kicker">{course.label}</span>
-                  </span>
-                  <span className="tab-arrow" aria-hidden="true">{activeCourse === course.id ? '−' : '›'}</span>
-                </button>
-              ))}
-            </nav>
-            <div id="course-details" aria-live="polite" aria-atomic="true">
-              {active ? (
-                <CoursePanel
-                  course={active}
-                  selectedTier={selectedTiers[active.id]}
-                  onTier={(tier) => setSelectedTiers((previous) => ({ ...previous, [active.id]: tier }))}
-                  onDetails={() => setDialogCourse(active)}
-                />
-              ) : (
-                <div className="details-pane empty-panel" data-testid="status-course-collapsed">
-                  <div className="eyebrow">Take your time</div>
-                  <h3>Start wherever you are.</h3>
-                  <p className="detail-summary">Choose a season on the left to see what kind of support might feel helpful.</p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="reassurance">
-            <div>
-              <div className="quote-mark" aria-hidden="true">“</div>
-              <p className="quote">You don’t need to have it all figured out to take one good next step.</p>
-              <span className="quote-by">A note from the Kindred team</span>
-            </div>
-            <div className="support-copy">
-              <strong>Care that makes space for you.</strong>
-              Our courses are written with experienced birth and postpartum educators. They offer grounded information—not medical advice, pressure, or a promise that every journey looks the same.
-            </div>
+  const [dialog, setDialog] = useState<Course | null>(null);
+  const chosenTier = active ? selectedTiers[active.id] : null;
+  return <main className="home-shell">
+    <section className="course-section" aria-labelledby="course-heading">
+      <div className="section-inner">
+        <h1 id="course-heading">Support for your season.</h1>
+        <div className="discovery">
+          <nav className="course-list" aria-label="Choose a course">
+            {courses.map((course) => <button key={course.id} type="button" className="course-tab"
+              aria-expanded={active?.id === course.id} aria-controls="course-details"
+              onClick={() => setActive(active?.id === course.id ? null : course)}>
+              <span><span className="tab-title">{course.title}</span><span className="tab-kicker">{course.label}</span></span>
+              <span className="tab-arrow" aria-hidden="true">{active?.id === course.id ? '−' : '›'}</span>
+            </button>)}
+          </nav>
+          <div id="course-details" className="course-content" aria-live="polite">
+            {active && <div className="details-pane" key={active.id}>
+              <h2>{active.headline}</h2>
+              <p className="detail-summary">{active.summary}</p>
+              <button type="button" className="text-link" onClick={() => setDialog(active)}>Explore this course <ArrowUpRight size={14}/></button>
+              <div className="tier-grid" role="group" aria-label={`${active.title} tiers`}>
+                {tiers.map((tier) => <button key={tier.id} type="button" className={`tier-card tier-${tier.id}`}
+                  aria-pressed={selectedTiers[active.id] === tier.id}
+                  onClick={() => setSelectedTiers((prev) => ({ ...prev, [active.id]: tier.id }))}>
+                  <span className="tier-name">{tier.name}</span>
+                  <span className="tier-price">{tier.price}<span className="tier-unit"> / month</span></span>
+                </button>)}
+              </div>
+              <button type="button" className="move-button"
+                disabled={active.id !== 'postpartum' || chosenTier !== 'platinum'}
+                onClick={() => navigate('/postpartum')}>Move to course content</button>
+            </div>}
           </div>
         </div>
-      </section>
-      <footer className="site-footer">
-        <span className="footer-brand">kindred</span>
-        <span>Gentle guidance for the becoming.</span>
-        <span>Educational support, not a substitute for clinical care.</span>
-      </footer>
-      {dialogCourse && <CourseDetailDialog course={dialogCourse} onClose={() => setDialogCourse(null)} />}
-    </main>
-  );
+      </div>
+    </section>
+    {dialog && <DetailDialog course={dialog} close={() => setDialog(null)} />}
+  </main>;
 }
 
-export default Home;
+const navItems = [
+  { label: 'Profile', icon: UserRound },
+  { label: 'Community', icon: Users },
+  { label: 'Post-partum', icon: Heart, active: true },
+  { label: 'Plans', icon: FileText },
+  { label: 'Settings', icon: Settings },
+  { label: 'Help & Support', icon: HelpCircle },
+];
+const events = [
+  { day: 17, time: '10:00–11:00', title: 'Postpartum Yoga', place: 'Tallinn', image: 'yoga' },
+  { day: 20, time: '11:00–13:00', title: 'Moms Coffee Meetup', place: 'Tallinn', image: 'coffee' },
+  { day: 24, time: '10:00–12:00', title: 'Stroller Walk', place: 'Kadriorg Park', image: 'walk' },
+  { day: 28, time: '19:00–20:00', title: 'Expert Webinar: Postpartum Recovery', place: 'Online', image: 'webinar' },
+];
+const weekdays = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
+const calendarCells = [28, 29, 30, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 1];
+
+function Tile({ icon: Icon, title, subtitle }: { icon: typeof Baby; title: string; subtitle?: string }) {
+  return <div className="dashboard-tile">
+    <Icon className="tile-icon" strokeWidth={1.45}/>
+    <span className="tile-copy">{title}{subtitle && <small>{subtitle}</small>}</span>
+    <ArrowRight className="tile-arrow" size={17}/>
+  </div>;
+}
+function Dashboard() {
+  const [mobileNav, setMobileNav] = useState(false);
+  const [mode, setMode] = useState<'W' | 'M'>('W');
+  const [monthOffset, setMonthOffset] = useState(0);
+  const date = new Date(2026, 9 + monthOffset, 1);
+  const month = date.toLocaleString('en', { month: 'long' });
+  const year = date.getFullYear();
+  const visibleCells = monthOffset === 0 ? calendarCells : buildCalendar(date.getFullYear(), date.getMonth());
+  return <main className="dashboard">
+    <button className="mobile-menu" type="button" aria-label="Toggle navigation" aria-expanded={mobileNav} onClick={() => setMobileNav(!mobileNav)}><Menu/></button>
+    <aside className={`side-nav ${mobileNav ? 'side-nav-open' : ''}`}>
+      <div className="logo-box">LOGO</div><button className="side-close" aria-label="Close navigation" onClick={() => setMobileNav(false)}><X size={17}/></button>
+      <nav>{navItems.map(({ label, icon: Icon, active: isActive }) => <div key={label} className={`nav-item ${isActive ? 'nav-active' : ''}`}><Icon size={20} strokeWidth={1.6}/><span>{label}</span></div>)}</nav>
+      <div className="nav-rule"/><div className="nav-item"><LogOut size={20} strokeWidth={1.6}/><span>Log out</span></div>
+    </aside>
+    <section className="dashboard-main">
+      <header className="dashboard-top">
+        <div className="mode-switch" role="group" aria-label="W/M toggle">
+          {(['W', 'M'] as const).map((m) => <button type="button" key={m} aria-pressed={mode === m} onClick={() => setMode(m)}>{m}</button>)}
+        </div>
+        <div className="account-actions"><span className="basket" aria-label="Cart"><ShoppingBasket size={25}/><span>1</span></span><span className="signin">Sign in</span></div>
+      </header>
+      <div className="dashboard-layout">
+        <div className="dashboard-content">
+          <h1 className="dashboard-title"><span className="mother-icon"><Baby size={42} strokeWidth={1.3}/></span>Post-partum</h1>
+          <SectionTitle icon={Play} title="Videos with the experts"/>
+          <div className="tile-grid two">
+            <Tile icon={Stethoscope} title="Gynecologist:" subtitle="Postpartum Recovery"/>
+            <Tile icon={Brain} title="Psychologist:" subtitle="Emotions and Mental Health"/>
+            <Tile icon={Brain} title="Neurologist:" subtitle="Sleep and Nervous System"/>
+            <Tile icon={Heart} title="Pelvic Floor Specialist:" subtitle="Body Recovery"/>
+          </div>
+          <SectionTitle icon={Dumbbell} title="Sport and Nutrition"/>
+          <div className="tile-grid two"><Tile icon={Dumbbell} title="Physical Training"/><Tile icon={Sparkles} title="Meditation"/></div>
+          <SectionTitle icon={UserRound} title="Book a Session"/>
+          <div className="tile-grid three">
+            <Tile icon={Dumbbell} title="Personal Trainer"/>
+            <Tile icon={Heart} title="Nutritionist"/>
+            <Tile icon={Sparkles} title="Astrologer"/>
+          </div>
+          <SectionTitle icon={Play} title="Webinars"/>
+          <div className="tile-grid two">
+            <Tile icon={Baby} title="Baby Care Basics"/>
+            <Tile icon={Heart} title="Returning to Yourself"/>
+          </div>
+        </div>
+        <aside className="events-card">
+          <div className="events-heading"><h2><CalendarDays size={22}/>Events</h2><span>See all <ArrowRight size={15}/></span></div>
+          <div className="calendar-month"><button aria-label="Previous month" onClick={() => setMonthOffset(monthOffset - 1)}>‹</button><strong>{month} {year}</strong><button aria-label="Next month" onClick={() => setMonthOffset(monthOffset + 1)}>›</button></div>
+          <div className="calendar-grid">
+            {weekdays.map((day) => <span className="weekday" key={day}>{day}</span>)}
+            {visibleCells.map((day, index) => <span key={`${index}-${day}`} className={`date-cell ${monthOffset === 0 && (day === 17 || day === 20) ? 'date-highlight' : ''} ${monthOffset === 0 && index < 3 || monthOffset === 0 && index === 34 ? 'date-outside' : ''}`}>{day}</span>)}
+          </div>
+          <div className="event-list">{events.map((event) => <article className="event-row" key={event.day}>
+            <div className={`event-thumb thumb-${event.image}`} aria-hidden="true">{event.image === 'yoga' ? <Moon/> : event.image === 'coffee' ? <MessageCircle/> : event.image === 'walk' ? <Baby/> : <BookOpen/>}</div>
+            <div className="event-copy"><span>{event.day} Oct 2026&nbsp; {event.time}</span><strong>{event.title}</strong><small>{event.place === 'Online' ? <><Play size={13}/> Online</> : <><span className="pin">⌖</span> {event.place}</>}</small></div>
+            <ArrowRight className="event-arrow" size={16}/>
+          </article>)}</div>
+        </aside>
+      </div>
+    </section>
+  </main>;
+}
+function SectionTitle({ icon: Icon, title }: { icon: typeof Play; title: string }) {
+  return <div className="section-title"><Icon size={23} strokeWidth={1.7}/><h2>{title}</h2><span/></div>;
+}
+function buildCalendar(year: number, month: number) {
+  const firstDay = (new Date(year, month, 1).getDay() + 6) % 7;
+  const count = new Date(year, month + 1, 0).getDate();
+  const prevCount = new Date(year, month, 0).getDate();
+  return Array.from({ length: 35 }, (_, i) => i < firstDay ? prevCount - firstDay + i + 1 : i - firstDay >= count ? i - firstDay - count + 1 : i - firstDay + 1);
+}
+function NotFound() { return <main className="not-found"><Link href="/">Support for your season.</Link></main>; }
+export default function App() {
+  return <Switch><Route path="/" component={Home}/><Route path="/postpartum" component={Dashboard}/><Route component={NotFound}/></Switch>;
+}
