@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Pregnancy Courses"
+description = "A responsive course page for expecting and new parents to explore planning, pregnancy, and postpartum learning paths, compare subscription tiers, and open deeper course details."
+version = "1.0.0"
+id = "artifacts/pregnancy-courses"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 20506
+
+[services.development]
+run = "pnpm --filter @workspace/pregnancy-courses run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/pregnancy-courses", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/pregnancy-courses/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "20506"
+BASE_PATH = "/"
